@@ -28,7 +28,7 @@ angular.module('myApp.view1', ['ngRoute'])
 
             var deferred = $q.defer();
 
-            $http.post(serverUrl, crawlConfig)
+            $http.post(serverUrl + '/crawl', crawlConfig)
                 .then(function (res) {
                     deferred.resolve(res.data.results);
                 })
@@ -45,7 +45,7 @@ angular.module('myApp.view1', ['ngRoute'])
 
 
         $scope.crawl = function (config) {
-            $scope.crawling = true;
+            updateCrawlingStatus();
 
             if (!config.url) {
                 config.url = "google.com"; // default crawling address
@@ -53,14 +53,17 @@ angular.module('myApp.view1', ['ngRoute'])
 
             CrawlServerExecutor.crawl(config)
                 .then(updateResults)
-                .then(updateCrawlingStatus);
+                .catch(function (reason) {
+                    console.error(reason);
+                })
+                .finally(updateCrawlingStatus);
         };
 
 
         $scope.reset = function () {
             $scope.config = {
-                portScan: "off",
-                ignoreRobots: "off",
+                portScan: false,
+                ignoreRobots: false,
                 url: ""
             };
 
