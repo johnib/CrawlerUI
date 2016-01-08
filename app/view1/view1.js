@@ -11,63 +11,35 @@ angular.module('myApp.view1', ['ngRoute'])
 
     .service('CrawlServerExecutor', ['$http', '$q', function ($http, $q) {
 
-        var self = this;
+        //TODO: put server address
+        var serverUrl = "";
 
-        this.crawl = function (config) {
+        this.getResults = function () {
+            return $http.get(serverUrl + '/get-history')
+                .then(function (res) {
+                    $q.resolve(res.data.results);
+                })
+                .catch($q.reject);
+        };
+
+        this.crawl = function (crawlConfig) {
             console.log("Executing crawler on ");
-            console.log(config);
+            console.log(crawlConfig);
 
             var deferred = $q.defer();
 
-            var response = {
-                data: {
-                    results: [
-                        {
-                            link: "a.html",
-                            domain: "google.com",
-                            dateStart: Date.now()
-                        },
-                        {
-                            link: "b.html",
-                            domain: "cnn.com",
-                            dateStart: Date.now()
-                        },
-                        {
-                            link: "c.html",
-                            domain: "ynet.co.il",
-                            dateStart: Date.now()
-                        },
-                        {
-                            link: "d.html",
-                            domain: "api.google.com",
-                            dateStart: Date.now()
-                        }
-                    ]
-                }
-            };
-
-            setTimeout(function () {
-                self.results = response.data.results;
-                console.log(self.results);
-
-                deferred.resolve(self.results);
-            }, 800);
-
-
-            //TODO: put server address
-            //var serverAddress = "";
-            //$http.post(serverAddress, config)
-            //    .then(function (res) {
-            //        deferred.resolve(res.data.results);
-            //    })
-            //    .catch(deferred.reject);
+            $http.post(serverUrl, crawlConfig)
+                .then(function (res) {
+                    deferred.resolve(res.data.results);
+                })
+                .catch(deferred.reject);
 
             return deferred.promise;
         }
 
     }])
 
-    .controller('View1Ctrl', ['$scope', 'CrawlServerExecutor', '$log', function ($scope, CrawlServerExecutor, $log) {
+    .controller('View1Ctrl', ['$scope', 'CrawlServerExecutor', function ($scope, CrawlServerExecutor) {
 
         $scope.crawling = false;
 
@@ -80,9 +52,8 @@ angular.module('myApp.view1', ['ngRoute'])
             }
 
             CrawlServerExecutor.crawl(config)
-                .then(showResults)
-                .then(updateCrawlingStatus)
-                .catch($log.error.bind($log));
+                .then(updateResults)
+                .then(updateCrawlingStatus);
         };
 
 
@@ -97,15 +68,20 @@ angular.module('myApp.view1', ['ngRoute'])
         };
 
 
-        var showResults = function (results) {
+        var updateResults = function (results) {
             $scope.results = results;
         };
 
+        var getResults = function () {
+            CrawlServerExecutor.getResults()
+                .then(updateResults);
+        };
 
         var updateCrawlingStatus = function () {
             $scope.crawling = !$scope.crawling;
         };
 
         $scope.reset();
+        getResults();
 
     }]);
