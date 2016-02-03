@@ -9,7 +9,7 @@ angular.module('myApp.view1', ['ngRoute'])
         });
     }])
 
-    .service('CrawlServerExecutor', function ($http, $q) {
+    .service('CrawlServerExecutor', ['$http', '$q', function ($http, $q) {
 
         //TODO: put server address
         var serverUrl = "";
@@ -37,9 +37,9 @@ angular.module('myApp.view1', ['ngRoute'])
             return deferred.promise;
         }
 
-    })
+    }])
 
-    .controller('View1Ctrl', function ($scope, CrawlServerExecutor) {
+    .controller('View1Ctrl', ['$scope', 'CrawlServerExecutor', function ($scope, CrawlServerExecutor) {
 
         $scope.crawling = false;
 
@@ -87,4 +87,4 @@ angular.module('myApp.view1', ['ngRoute'])
         $scope.reset();
         getResults();
 
-    });
+    }]);
