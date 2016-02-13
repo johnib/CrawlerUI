@@ -12,14 +12,31 @@ angular.module('myApp.view1', ['ngRoute'])
     .service('CrawlServerExecutor', ['$http', '$q', function ($http, $q) {
 
         //TODO: put server address
-        var serverUrl = "";
+        var serverUrl = "#/";
+
+        function logResults(results) {
+            if (results) {
+                results.forEach(function (result) {
+                    console.log(result);
+                });
+            } else {
+                console.log("No history");
+            }
+        }
 
         this.getResults = function () {
-            return $http.get(serverUrl + '/get-history')
+            console.log("Retrieving history");
+            var deferred = $q.defer();
+
+            $http.get(serverUrl + '/get-history')
                 .then(function (res) {
-                    $q.resolve(res.data.results);
+                    deferred.resolve(res.data.results);
+                    logResults(res.data.results);
                 })
-                .catch($q.reject);
+                .catch(deferred.reject);
+
+
+            return deferred.promise;
         };
 
         this.crawl = function (crawlConfig) {
@@ -30,9 +47,13 @@ angular.module('myApp.view1', ['ngRoute'])
 
             $http.post(serverUrl + '/crawl', crawlConfig)
                 .then(function (res) {
+                    console.log("Received crawling information");
                     deferred.resolve(res.data.results);
+                    logResults(res.data.results);
                 })
-                .catch(deferred.reject);
+                .catch(function (reason) {
+                    deferred.reject(reason);
+                });
 
             return deferred.promise;
         }
@@ -41,22 +62,24 @@ angular.module('myApp.view1', ['ngRoute'])
 
     .controller('View1Ctrl', ['$scope', 'CrawlServerExecutor', function ($scope, CrawlServerExecutor) {
 
-        $scope.crawling = false;
-
-
         $scope.crawl = function (config) {
-            updateCrawlingStatus();
+            toggleCrawlingStatus();
 
             if (!config.url) {
                 config.url = "google.com"; // default crawling address
             }
 
             CrawlServerExecutor.crawl(config)
-                .then(updateResults)
-                .catch(function (reason) {
-                    console.error(reason);
+                .then(function (results) {
+                    updateResults(results);
+                    setFinish();
                 })
-                .finally(updateCrawlingStatus);
+                .catch(function (reason) {
+                    //TODO: let the user know crawling is in progress
+                    console.error(reason);
+                    setFailure();
+                })
+                .finally(toggleCrawlingStatus);
         };
 
 
@@ -64,10 +87,14 @@ angular.module('myApp.view1', ['ngRoute'])
             $scope.config = {
                 portScan: false,
                 ignoreRobots: false,
-                url: ""
+                url: "",
+                phone: ""
             };
 
             $scope.results = [];
+            $scope.crawling = false; // locks the crawl button from being pressed
+            $scope.finished = false; // shows green ack message after crawling is done.
+            $scope.failure = false; // shows error message if crawling already in progress
         };
 
 
@@ -80,8 +107,16 @@ angular.module('myApp.view1', ['ngRoute'])
                 .then(updateResults);
         };
 
-        var updateCrawlingStatus = function () {
+        var toggleCrawlingStatus = function () {
             $scope.crawling = !$scope.crawling;
+        };
+
+        var setFailure = function () {
+            $scope.failure = true;
+        };
+
+        var setFinish = function () {
+            $scope.finished = true;
         };
 
         $scope.reset();
